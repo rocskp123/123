@@ -24,6 +24,8 @@ from data_diff.databases.clickhouse import Clickhouse
 from data_diff.databases.vertica import Vertica
 from data_diff.databases.duckdb import DuckDB
 from data_diff.databases.mssql import MsSQL
+from data_diff.databases.oceanbase_cloud import OceanBaseOracle
+logger = logging.getLogger(__name__)
 
 
 @attrs.frozen
@@ -90,6 +92,7 @@ DATABASE_BY_SCHEME = {
     "clickhouse": Clickhouse,
     "vertica": Vertica,
     "mssql": MsSQL,
+    "oceanbase": OceanBaseOracle,
 }
 
 

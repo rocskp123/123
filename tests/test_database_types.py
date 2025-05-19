@@ -360,6 +360,30 @@ DATABASE_TYPES = {
             "BIT",
         ],
     },
+    db.OceanBaseOracle: {
+        "int": [
+            "int",
+        ],
+        "datetime": [
+            "timestamp with local time zone",
+            "timestamp(6) with local time zone",
+            "timestamp(9) with local time zone",
+        ],
+        "float": [
+            "float",
+            "numeric",
+            "real",
+            "double precision",
+            "Number(5, 2)",
+        ],
+        "uuid": [
+            "CHAR(100)",
+            "VARCHAR(100)",
+            "NCHAR(100)",
+            "NVARCHAR2(100)",
+        ],
+        "boolean": []
+    }
 }
 
 

@@ -46,6 +46,8 @@ pyodbc = {version=">=4.0.39", optional=true}
 typing-extensions = ">=4.0.1"
 attrs = ">=23.1.0"
 mashumaro = {version = ">=2.9,<3.11.0", extras = ["msgpack"]}
+jaydebeapi = "^1.2.3"
+jpype1 = "^1.5.2"
 
 [tool.poetry.dev-dependencies]
 parameterized = "*"
@@ -69,6 +71,7 @@ ruff = ">=0.1.4"
 # When adding, update also: README + dev deps just above
 preql = ["preql"]
 mysql = ["mysql-connector-python"]
+oceanbase_cloud = ["JayDeBeApi","jpype1"]
 postgresql = ["psycopg2"]
 redshift = ["psycopg2"]
 snowflake = ["snowflake-connector-python", "cryptography"]
