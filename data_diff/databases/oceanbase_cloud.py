@@ -140,16 +140,18 @@ class OceanBaseOracle(ThreadedDatabase):
         try:
             if not jpype.isJVMStarted():
                 jvm_path = "/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home/jre/lib/server/libjvm.dylib"
-                jpype.startJVM(jvm_path,convertStrings=False)
+                jpype.startJVM(jvm_path, "-ea", f"-Djava.class.path={self.conn_args['jars']}", convertStrings=False)
             
-            url = 'jdbc:oceanbase://obot6ql4n6xk9h7k-mi.aliyun-cn-hangzhou-internet.oceanbase.cloud:1521/CLIFTON'
-            user = 'CLIFTON'
-            password = 'Skp13775772708'
-            driver = 'com.oceanbase.jdbc.Driver'
-            jarFile = '/Users/clifton/oceanbase-client-2.4.9.1.jar'
-            
+            # url = 'jdbc:oceanbase://obot6ql4n6xk9h7k-mi.aliyun-cn-hangzhou-internet.oceanbase.cloud:1521/CLIFTON'
+            # user = 'CLIFTON'
+            # password = 'Skp13775772708'
+            # driver = 'com.oceanbase.jdbc.Driver'
+            # jarFile = '/Users/clifton/oceanbase-client-2.4.9.1.jar'
+            print(f"[DEBUG] loading jar: {self.conn_args['jars']}")
+
+
             ob = import_oceanbase()
-            conn = ob.connect(driver, url, [user, password], jars=jarFile)
+            conn = ob.connect(**self.conn_args)
             if SESSION_TIME_ZONE:
                 conn.cursor().execute(f"ALTER SESSION SET TIME_ZONE = '{SESSION_TIME_ZONE}'")
             return conn
