@@ -1051,7 +1051,7 @@ class Database(abc.ABC):
             raise RuntimeError(f"{self.name}: Table '{'.'.join(path)}' does not exist, or has no columns")
 
         d = {
-            r[0]: RawColumnInfo(
+            str(r[0]): RawColumnInfo(
                 column_name=r[0],
                 data_type=r[1],
                 datetime_precision=r[2],
