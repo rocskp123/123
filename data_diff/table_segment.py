@@ -143,6 +143,7 @@ class TableSegment:
 
     def _with_raw_schema(self, raw_schema: Dict[str, RawColumnInfo]) -> Self:
         schema = self.database._process_table_schema(self.table_path, raw_schema, self.relevant_columns, self._where())
+        schema = {str(k): v for k, v in schema.items()}
         return self.new(schema=create_schema(self.database.name, self.table_path, schema, self.case_sensitive))
 
     def with_schema(self) -> Self:

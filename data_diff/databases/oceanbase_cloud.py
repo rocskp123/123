@@ -104,15 +104,22 @@ class Dialect(BaseDialect):
         return "LOCALTIMESTAMP"
 
     def parse_type(self, table_path: DbPath, info: RawColumnInfo) -> ColType:
+    # 转成 Python 字符串，None 会变成 'None'
+        data_type_str = str(info.data_type) if info.data_type is not None else ''
+        if not data_type_str or data_type_str == 'None':
+            print(f"[WARN] Unexpected data_type for column '{info.column_name}': {info.data_type!r}")
+            return super().parse_type(table_path, info)
+    
         regexps = {
-            r"TIMESTAMP\((\d)\) WITH LOCAL TIME ZONE": Timestamp,
-            r"TIMESTAMP\((\d)\) WITH TIME ZONE": TimestampTZ,
-            r"TIMESTAMP\((\d)\)": Timestamp,
-        }
-        for m, t_cls in match_regexps(regexps, info.data_type):
+        r"TIMESTAMP\((\d)\) WITH LOCAL TIME ZONE": Timestamp,
+        r"TIMESTAMP\((\d)\) WITH TIME ZONE": TimestampTZ,
+        r"TIMESTAMP\((\d)\)": Timestamp,
+    }
+        for m, t_cls in match_regexps(regexps, data_type_str):
             precision = int(m.group(1))
             return t_cls(precision=precision, rounds=self.ROUNDS_ON_PREC_LOSS)
         return super().parse_type(table_path, info)
+
 
 
 ##@attrs.define(frozen=False, init=False, kw_only=True)

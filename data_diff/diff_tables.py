@@ -356,8 +356,8 @@ class TableDiffer(ThreadBase, ABC):
 
         # We add 1 because our ranges are exclusive of the end (like in Python)
         try:
-            min_key = Vector(key_type.make_value(mn) for key_type, mn in safezip(key_types, min_key_values))
-            max_key = Vector(key_type.make_value(mx) + 1 for key_type, mx in safezip(key_types, max_key_values))
+            min_key = Vector(key_type.make_value(str(mn)) for key_type, mn in safezip(key_types, min_key_values))
+            max_key = Vector(key_type.make_value(str(mx)) + 1 for key_type, mx in safezip(key_types, max_key_values))
         except (TypeError, ValueError) as e:
             raise type(e)(f"Cannot apply {key_types} to '{min_key_values}', '{max_key_values}'.") from e
 
