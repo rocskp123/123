@@ -74,10 +74,10 @@ class Dialect(BaseDialect):
         )
 
     def md5_as_int(self, s: str) -> str:
-        return f"to_number(substr(standard_hash({s}, 'MD5'), {1 + MD5_HEXDIGITS - CHECKSUM_HEXDIGITS}), 'xxxxxxxxxxxxxxx') - {CHECKSUM_OFFSET}"
+        return f"to_number(substr(DBMS_CRYPTO.Hash(utl_raw.cast_to_raw({s}),2), {1 + MD5_HEXDIGITS - CHECKSUM_HEXDIGITS}), 'xxxxxxxxxxxxxxx') - {CHECKSUM_OFFSET}"
 
     def md5_as_hex(self, s: str) -> str:
-        return f"standard_hash({s}, 'MD5')"
+        return f"DBMS_CRYPTO.Hash(utl_raw.cast_to_raw({s}), 2)"
 
     def normalize_uuid(self, value: str, coltype: ColType_UUID) -> str:
         return f"CAST(TRIM({value}) AS VARCHAR(36))"
