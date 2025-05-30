@@ -49,6 +49,8 @@ UUID_PATTERN = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9
 def is_uuid(u: str) -> bool:
     # E.g., hashlib.md5(b'hello') is a 32-letter hex number, but not an UUID.
     # It would fail UUID-like comparison (< & >) because of casing and dashes.
+    if not isinstance(u, str):
+        return False
     if not UUID_PATTERN.fullmatch(u):
         return False
     try:
