@@ -110,9 +110,9 @@ class HashDiffer(TableDiffer):
 
     def __attrs_post_init__(self) -> None:
         # Validate options
-        if self.bisection_factor >= self.bisection_threshold:
+        if int(self.bisection_factor) >= self.bisection_threshold:
             raise ValueError("Incorrect param values (bisection factor must be lower than threshold)")
-        if self.bisection_factor < 2:
+        if int(self.bisection_factor) < 2:
             raise ValueError("Must have at least two segments per iteration (i.e. bisection_factor >= 2)")
 
     def _validate_and_adjust_columns(self, table1: TableSegment, table2: TableSegment, *, strict: bool = True) -> None:
@@ -233,7 +233,7 @@ class HashDiffer(TableDiffer):
 
         # If count is below the threshold, just download and compare the columns locally
         # This saves time, as bisection speed is limited by ping and query performance.
-        if self.bisection_disabled or max_rows < self.bisection_threshold or max_space_size < self.bisection_factor * 2:
+        if self.bisection_disabled or max_rows < self.bisection_threshold or max_space_size < int(self.bisection_factor) * 2:
             rows1, rows2 = self._threaded_call("get_values", [table1, table2])
             json_cols = {
                 i: colname

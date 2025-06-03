@@ -139,6 +139,7 @@ click.Context.formatter_class = MyHelpFormatter
 @click.option(
     "--bisection-factor",
     default=None,
+    type=int,
     help=f"Segments per iteration. Default={DEFAULT_BISECTION_FACTOR}.",
     metavar="NUM",
 )
