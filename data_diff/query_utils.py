@@ -4,6 +4,7 @@ from contextlib import suppress
 
 from data_diff.abcs.database_types import DbPath
 from data_diff.databases.base import QueryError
+from data_diff.databases.oceanbase_cloud import OceanBaseOracle
 from data_diff.databases.oracle import Oracle
 from data_diff.queries.api import table, commit, Expr
 
@@ -52,5 +53,10 @@ def _append_to_table(path: DbPath, expr: Expr):
 
 
 def append_to_table(db, path, expr) -> None:
-    f = _append_to_table_oracle if isinstance(db, Oracle) else _append_to_table
+    if isinstance(db, Oracle):
+        f = _append_to_table_oracle
+    elif isinstance(db, OceanBaseOracle):
+        f = _append_to_table_oracle
+    else:
+        f = _append_to_table
     db.query(f(path, expr))

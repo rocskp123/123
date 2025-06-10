@@ -1,18 +1,23 @@
+from functools import partial
 import os
 from numbers import Number
 import logging
 from collections import defaultdict
-from typing import Any, Collection, Dict, Iterator, List, Sequence, Set, Tuple
+from typing import Any, Collection, Dict, Iterator, List, Optional, Sequence, Set, Tuple
 
 import attrs
 from typing_extensions import Literal
 
-from data_diff.abcs.database_types import ColType_UUID, NumericType, PrecisionType, StringType, Boolean, JSON
+from data_diff.abcs.database_types import ColType_UUID, DbPath, NumericType, PrecisionType, StringType, Boolean, JSON
 from data_diff.info_tree import InfoTree
+from data_diff.queries.api import table
+from data_diff.queries.ast_classes import ConstantTable
+from data_diff.schema import Schema, from_names
 from data_diff.utils import safezip, diffs_are_equiv_jsons
 from data_diff.thread_utils import ThreadedYielder
 from data_diff.table_segment import TableSegment
 from data_diff.diff_tables import TableDiffer
+from data_diff.query_utils import append_to_table, drop_table
 
 BENCHMARK = os.environ.get("BENCHMARK", False)
 
@@ -108,12 +113,17 @@ class HashDiffer(TableDiffer):
 
     stats: dict = attrs.field(factory=dict)
 
+    materialize_to_table: Optional[DbPath] = None
+    materialize_all_rows: bool = False
+    table_write_limit: int = 100000
+
     def __attrs_post_init__(self) -> None:
         # Validate options
-        if int(self.bisection_factor) >= self.bisection_threshold:
+        if self.bisection_factor >= self.bisection_threshold:
             raise ValueError("Incorrect param values (bisection factor must be lower than threshold)")
-        if int(self.bisection_factor) < 2:
+        if self.bisection_factor < 2:
             raise ValueError("Must have at least two segments per iteration (i.e. bisection_factor >= 2)")
+   
 
     def _validate_and_adjust_columns(self, table1: TableSegment, table2: TableSegment, *, strict: bool = True) -> None:
         for c1, c2 in safezip(table1.relevant_columns, table2.relevant_columns):
@@ -182,6 +192,9 @@ class HashDiffer(TableDiffer):
             f"key-range: {table1.min_key}..{table2.max_key}, "
             f"size <= {max_rows}"
         )
+        # db = table1.database
+        # if self.materialize_to_table:
+        #     drop_table(db,self.materialize_to_table)
 
         # When benchmarking, we want the ability to skip checksumming. This
         # allows us to download all rows for comparison in performance. By
@@ -222,9 +235,10 @@ class HashDiffer(TableDiffer):
         info_tree: InfoTree,
         level=0,
         max_rows=None,
+        segment_index=None,
     ):
         assert table1.is_bounded and table2.is_bounded
-
+        db = table1.database
         max_space_size = max(table1.approximate_size(), table2.approximate_size())
         if max_rows is None:
             # We can be sure that row_count <= max_rows iff the table key is unique
@@ -233,7 +247,7 @@ class HashDiffer(TableDiffer):
 
         # If count is below the threshold, just download and compare the columns locally
         # This saves time, as bisection speed is limited by ping and query performance.
-        if self.bisection_disabled or max_rows < self.bisection_threshold or max_space_size < int(self.bisection_factor) * 2:
+        if self.bisection_disabled or max_rows < self.bisection_threshold or max_space_size < self.bisection_factor * 2:
             rows1, rows2 = self._threaded_call("get_values", [table1, table2])
             json_cols = {
                 i: colname
@@ -254,11 +268,58 @@ class HashDiffer(TableDiffer):
                 )
             )
 
+
             info_tree.info.set_diff(diff)
             info_tree.info.rowcounts = {1: len(rows1), 2: len(rows2)}
 
             logger.info(". " * level + f"Diff found {len(diff)} different rows.")
             self.stats["rows_downloaded"] = self.stats.get("rows_downloaded", 0) + max(len(rows1), len(rows2))
+            
+            
+            if self.materialize_to_table:
+                if diff:
+                    logger.info("Materializing final diff result to table")
+                    diff_rows = self.dynamic_diff_to_itable_and_write(diff, table1.relevant_columns)
+                    self._materialize_diff(db, diff_rows, segment_index=segment_index)
+                    logger.info("Materialized diff to table")
             return diff
 
+        # diff_rows = self.dynamic_diff_to_itable_and_write(db,diff, table2.relevant_columns)
+        # materialize_task = (
+        #     partial(
+        #         self._materialize_diff,
+        #         db,
+        #         diff_rows,
+        #         segment_index=segment_index,
+        #     )
+            
+        #     if self.materialize_to_table
+        #     else None
+        #     )
+        
+        # if  materialize_task:
+        #     logger.info("g")
+        #     materialize_task()
+        #     logger.info("Materialized diff to table")
+
         return super()._bisect_and_diff_segments(ti, table1, table2, info_tree, level, max_rows)
+    
+    
+
+    def _materialize_diff(self, db, diff_rows, segment_index=None):
+        assert self.materialize_to_table
+        # if not hasattr(self, '_table_dropped'):
+        #     drop_table(db, self.materialize_to_table)
+        #     self._table_dropped = True
+        append_to_table(db, self.materialize_to_table, diff_rows)
+
+    def dynamic_diff_to_itable_and_write(self, diff, source_columns):
+        columns = ['op'] + list(source_columns)
+        values = [(op, *row) for op, row in diff]
+        expr = ConstantTableWithSchema(values, columns)
+        return expr
+    
+class ConstantTableWithSchema(ConstantTable):
+    def __init__(self, rows, columns):
+        super().__init__(rows)
+        object.__setattr__(self, 'schema', {col: 'varchar(1024)' for col in columns})

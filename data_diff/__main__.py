@@ -413,6 +413,10 @@ def _get_table_differ(
         bisection_threshold=DEFAULT_BISECTION_THRESHOLD if bisection_threshold is None else bisection_threshold,
         threaded=threaded,
         max_threadpool_size=threads and threads * 2,
+        table_write_limit=table_write_limit,
+            materialize_to_table=(
+                materialize_to_table and db2.dialect.parse_table_name(eval_name_template(materialize_to_table))
+            ),
     )
 
 
