@@ -116,6 +116,7 @@ class HashDiffer(TableDiffer):
     materialize_to_table: Optional[DbPath] = None
     materialize_all_rows: bool = False
     table_write_limit: int = 100000
+    _table_dropped: bool = False
 
     def __attrs_post_init__(self) -> None:
         # Validate options
@@ -308,9 +309,9 @@ class HashDiffer(TableDiffer):
 
     def _materialize_diff(self, db, diff_rows, segment_index=None):
         assert self.materialize_to_table
-        # if not hasattr(self, '_table_dropped'):
-        #     drop_table(db, self.materialize_to_table)
-        #     self._table_dropped = True
+        if not self._table_dropped:
+            drop_table(db, self.materialize_to_table)
+            self._table_dropped = True
         append_to_table(db, self.materialize_to_table, diff_rows)
 
     def dynamic_diff_to_itable_and_write(self, diff, source_columns):
